@@ -19,22 +19,23 @@ log = logging.getLogger(__name__)
 
 async def async_main(context):
     context.task = scriptworker.client.get_task(context.config)
-    log.info('Validating task')
-    validate_task_schema(context)
+    log.info('Hello world!')
+    log.info('Hello world!', context.task)
 
-    log.info('Getting upstream artifacts...')
-    artifacts_per_task_id = get_upstream_artifacts_full_paths_per_task_id(context)
-    all_artifacts = [
-        artifact
-        for artifacts_list in artifacts_per_task_id.values()
-        for artifact in artifacts_list
-    ]
-    wheels_only = list(filter(lambda x: x.contains(".whl"), all_artifacts))
-
-    log.info('Pushing wheels to PyPI...')
-    twine_upload(wheels_only)
-
-    log.info('Done!')
+###    log.info('Validating task')
+###    validate_task_schema(context)
+###
+###    log.info('Getting upstream artifacts...')
+###    artifacts_per_task_id = get_upstream_artifacts_full_paths_per_task_id(context)
+###    all_artifacts = [
+###        artifact
+###        for artifacts_list in artifacts_per_task_id.values()
+###        for artifact in artifacts_list
+###    ]
+###    wheels_only = list(filter(lambda x: x.contains(".whl"), all_artifacts))
+###
+###    log.info('Pushing wheels to PyPI...')
+###    twine_upload(wheels_only)
 
 
 def get_default_config():

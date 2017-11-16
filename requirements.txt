@@ -1,2 +1,4 @@
+async-timeout==1.4.0
+taskcluster==2.0.0
 scriptworker
 twine
