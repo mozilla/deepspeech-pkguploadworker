@@ -4,13 +4,13 @@
 # In production, follow the production conventions.
 #-----------------------------------------------------------------------------------------------
 provisioner_id: deepspeech-provisioner
-worker_group: test-dummy-workers
-worker_type: dummy-worker-ds
+worker_group: deepspeech-workers
+worker_type: ds-scriptworker
 
 # worker_id will default to env['SCRIPTWORKER_WORKER_ID'] if not set, for CloudOps deployment.
 # We may be able to remove that default if we don't use CloudOps deployment for scriptworker
 # instances.
-worker_id: dummy-worker-ds1
+worker_id: ds-scriptworker-1
 
 
 #-----------------------------------------------------------------------------------------------

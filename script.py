@@ -11,6 +11,9 @@ import scriptworker.client
 from scriptworker.artifacts import get_upstream_artifacts_full_paths_per_task_id
 from scriptworker.context import Context
 from scriptworker.exceptions import ScriptWorkerTaskException
+from scriptworker.utils import download_file, retry_async, raise_future_exceptions
+
+from taskcluster.queue import Queue
 
 from twine.commands.upload import main as twine_upload
 
@@ -18,26 +21,79 @@ from twine.commands.upload import main as twine_upload
 log = logging.getLogger(__name__)
 
 
+async def download_artifacts(context, file_urls, parent_dir=None, session=None,
+                             download_func=download_file):
+    parent_dir = parent_dir or context.config['work_dir']
+    session = session or context.session
+
+    tasks = []
+    files = []
+    for file_url in file_urls:
+        rel_path = file_url.rsplit('/', 1)[-1]
+        abs_file_path = os.path.join(parent_dir, rel_path)
+        files.append(abs_file_path)
+        tasks.append(
+            asyncio.ensure_future(
+                retry_async(
+                    download_func, args=(context, file_url, abs_file_path),
+                    kwargs={'session': session},
+                )
+            )
+        )
+
+    await raise_future_exceptions(tasks)
+    return files
+
+
+def get_artifact_url(task_id, artifact_name):
+    PATTERN = 'https://queue.taskcluster.net/v1/task/{task_id}/artifacts/{artifact_name}'
+    return PATTERN.format(task_id=task_id, artifact_name=artifact_name)
+
+
 async def async_main(context):
     context.task = scriptworker.client.get_task(context.config)
-    log.info('Hello world!')
-    log.info('Hello world!', context.task)
 
-###    log.info('Validating task')
-###    validate_task_schema(context)
-###
-###    log.info('Getting upstream artifacts...')
-###    artifacts_per_task_id = get_upstream_artifacts_full_paths_per_task_id(context)
-###    all_artifacts = [
-###        artifact
-###        for artifacts_list in artifacts_per_task_id.values()
-###        for artifact in artifacts_list
-###    ]
-###    wheels_only = list(filter(lambda x: x.contains(".whl"), all_artifacts))
-###
-###    log.info('Pushing wheels to PyPI...')
-###    twine_upload(wheels_only)
+    artifactTaskIds = context.task['payload']['artifacts_deps']
+    queue = Queue()
+    allWheels = []
+    for taskId in artifactTaskIds:
+        artifacts = queue.listLatestArtifacts(taskId)
+        if 'artifacts' in artifacts:
+            artifacts = [a['name'] for a in artifacts['artifacts']]
+            # log.debug('all artifacts: {}'.format(artifacts))
+            artifacts = filter(lambda x: '.whl' in x, artifacts)
+            # log.debug('filtered artifacts: {}'.format(artifacts))
+            urls = [get_artifact_url(taskId, a) for a in artifacts]
+            # log.debug('urls: {}'.format(urls))
+            files = await download_artifacts(context, urls)
+            # log.debug('files: {}'.format(files))
+            allWheels.extend(files)
 
+    with open(os.path.expanduser('~/.pypirc'), 'w') as rc:
+        rc.write('''
+[distutils]
+index-servers =
+  pypi
+  pypitest
+
+[pypi]
+username={pypi_username}
+password={pypi_password}
+
+[pypitest]
+repository=https://test.pypi.org/legacy/
+username={pypitest_username}
+password={pypitest_password}'''.format(
+            pypi_username=os.environ['PYPI_USERNAME'],
+            pypi_password=os.environ['PYPI_PASSWORD'],
+            pypitest_username=os.environ['PYPITEST_USERNAME'],
+            pypitest_password=os.environ['PYPITEST_PASSWORD'],
+        ))
+
+    if 'USE_TEST_PYPI' in os.environ and os.environ['USE_TEST_PYPI'] == '1':
+        allWheels.extend(['-r', 'pypitest'])
+
+    twine_upload(allWheels)
 
 def get_default_config():
     cwd = os.getcwd()
@@ -45,7 +101,6 @@ def get_default_config():
 
     return {
         'work_dir': os.path.join(parent_dir, 'work_dir'),
-        'schema_file': os.path.join(cwd, 'pkgupload_task_schema.json'),
         'verbose': False,
     }
 
@@ -53,12 +108,6 @@ def get_default_config():
 def load_json(path):
     with open(path, "r") as fh:
         return json.load(fh)
-
-
-def validate_task_schema(context):
-    task_schema = load_json(context.config['schema_file'])
-    log.debug(task_schema)
-    scriptworker.client.validate_json_schema(context.task, task_schema)
 
 
 def usage():

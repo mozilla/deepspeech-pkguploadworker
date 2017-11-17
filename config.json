@@ -1,0 +1,12 @@
+{
+    "work_dir": "/tmp/work",
+    "log_dir": "/tmp/log_dir",
+    "artifact_dir": "/tmp/artifact_dir",
+    "task_log_dir": "/tmp/task_log_dir",
+    "git_commit_signing_pubkey_dir": "/tmp/git_commit_signing_pubkey_dir",
+    "base_gpg_home_dir": "/tmp/base_gpg_home_dir",
+    "git_key_repo_dir": "/tmp/git_key_repo_dir",
+    "pubkey_path": "/tmp/pubkey_path",
+    "privkey_path": "/tmp/privkey_path",
+    "verbose": true
+}
