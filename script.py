@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import aiohttp
 import asyncio
+import json
 import logging
 import os
 import sys
@@ -49,9 +50,13 @@ def get_default_config():
     }
 
 
+def load_json(path):
+    with open(path, "r") as fh:
+        return json.load(fh)
+
+
 def validate_task_schema(context):
-    with open(context.config['schema_file']) as fh:
-        task_schema = json.load(fh)
+    task_schema = load_json(context.config['schema_file'])
     log.debug(task_schema)
     scriptworker.client.validate_json_schema(context.task, task_schema)
 
