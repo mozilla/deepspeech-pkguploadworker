@@ -1,0 +1,9 @@
+{
+  "engines": {
+    "node": "4.8.x",
+    "npm": "2.15.x"
+  },
+  "dependencies": {
+    "npm-cli-login": "0.0.10"
+  }
+}

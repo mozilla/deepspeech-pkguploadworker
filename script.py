@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
 import sys
 import traceback
 
@@ -21,7 +22,7 @@ from twine.commands.upload import main as twine_upload
 log = logging.getLogger(__name__)
 
 
-async def download_artifacts(context, file_urls, parent_dir=None, session=None,
+def download_artifacts(context, file_urls, parent_dir=None, session=None,
                              download_func=download_file):
     parent_dir = parent_dir or context.config['work_dir']
     session = session or context.session
@@ -41,8 +42,7 @@ async def download_artifacts(context, file_urls, parent_dir=None, session=None,
             )
         )
 
-    await raise_future_exceptions(tasks)
-    return files
+    return tasks, files
 
 
 def get_artifact_url(task_id, artifact_name):
@@ -53,21 +53,41 @@ def get_artifact_url(task_id, artifact_name):
 async def async_main(context):
     context.task = scriptworker.client.get_task(context.config)
 
-    artifactTaskIds = context.task['payload']['artifacts_deps']
+    pythonArtifactTaskIds = context.task['payload']['artifacts_deps']['python']
+    jsArtifactTaskIds = context.task['payload']['artifacts_deps']['javascript']
     queue = Queue()
-    allWheels = []
-    for taskId in artifactTaskIds:
+    downloadTasks = []
+    allPackages = []
+    for taskId in pythonArtifactTaskIds:
         artifacts = queue.listLatestArtifacts(taskId)
         if 'artifacts' in artifacts:
             artifacts = [a['name'] for a in artifacts['artifacts']]
             # log.debug('all artifacts: {}'.format(artifacts))
-            artifacts = filter(lambda x: '.whl' in x, artifacts)
+            artifacts = filter(lambda x: x.endswith('.whl'), artifacts)
             # log.debug('filtered artifacts: {}'.format(artifacts))
             urls = [get_artifact_url(taskId, a) for a in artifacts]
             # log.debug('urls: {}'.format(urls))
-            files = await download_artifacts(context, urls)
+            tasks, files = download_artifacts(context, urls)
             # log.debug('files: {}'.format(files))
-            allWheels.extend(files)
+            downloadTasks.extend(tasks)
+            allPackages.extend(files)
+
+    for taskId in jsArtifactTaskIds:
+        artifacts = queue.listLatestArtifacts(taskId)
+        if 'artifacts' in artifacts:
+            artifacts = [a['name'] for a in artifacts['artifacts']]
+            log.debug('all artifacts: {}'.format(artifacts))
+            artifacts = filter(lambda x: x.endswith('.tgz'), artifacts)
+            log.debug('filtered artifacts: {}'.format(artifacts))
+            urls = [get_artifact_url(taskId, a) for a in artifacts]
+            log.debug('urls: {}'.format(urls))
+            tasks, files = download_artifacts(context, urls)
+            log.debug('files: {}'.format(files))
+            downloadTasks.extend(tasks)
+            allPackages.extend(files)
+
+    # Wait on downloads
+    await raise_future_exceptions(downloadTasks)
 
     with open(os.path.expanduser('~/.pypirc'), 'w') as rc:
         rc.write('''
@@ -90,10 +110,21 @@ password={pypitest_password}'''.format(
             pypitest_password=os.environ['PYPITEST_PASSWORD'],
         ))
 
+    allWheels = list(filter(lambda x: '.whl' in x, allPackages))
+    allNpmPackages = list(filter(lambda x: '.tgz' in x, allPackages))
+
+    assert len(allNpmPackages) == 2, "should only have one CPU and one GPU package"
+
     if 'USE_TEST_PYPI' in os.environ and os.environ['USE_TEST_PYPI'] == '1':
         allWheels.extend(['-r', 'pypitest'])
 
     twine_upload(allWheels)
+
+    subprocess.check_call(['npm-cli-login'])
+
+    for package in allNpmPackages:
+        subprocess.check_call(['npm', 'publish', package])
+
 
 def get_default_config():
     cwd = os.getcwd()
