@@ -121,7 +121,7 @@ password={pypitest_password}'''.format(
     if 'USE_TEST_PYPI' in os.environ and os.environ['USE_TEST_PYPI'] == '1':
         allWheels.extend(['-r', 'pypitest'])
 
-    twine_upload(allWheels, skip_existing=True)
+    twine_upload(allWheels, "--skip-existing")
 
     subprocess.check_call(['npm-cli-login'])
 
