@@ -111,6 +111,8 @@ password={pypitest_password}'''.format(
         ))
 
     allWheels = list(filter(lambda x: '.whl' in x, allPackages))
+    allWheels.extend('--skip-existing')
+
     allNpmPackages = list(filter(lambda x: '.tgz' in x, allPackages))
 
     log.debug('allWheels: {}'.format(allWheels))
@@ -121,7 +123,7 @@ password={pypitest_password}'''.format(
     if 'USE_TEST_PYPI' in os.environ and os.environ['USE_TEST_PYPI'] == '1':
         allWheels.extend(['-r', 'pypitest'])
 
-    twine_upload([ allWheels, "--skip-existing" ])
+    twine_upload(allWheels)
 
     subprocess.check_call(['npm-cli-login'])
 
