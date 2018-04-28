@@ -1,4 +1,4 @@
 async-timeout==1.4.0
 taskcluster==2.0.0
 scriptworker==5.2.3
-twine==1.9.1
+twine==1.11.0
