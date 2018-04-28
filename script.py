@@ -111,7 +111,7 @@ password={pypitest_password}'''.format(
         ))
 
     allWheels = list(filter(lambda x: '.whl' in x, allPackages))
-    allWheels.extend('--skip-existing')
+    allWheels.extend(['--skip-existing'])
 
     allNpmPackages = list(filter(lambda x: '.tgz' in x, allPackages))
 
