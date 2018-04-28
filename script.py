@@ -8,6 +8,10 @@ import subprocess
 import sys
 import traceback
 
+import semver
+import tarfile
+import json
+
 import scriptworker.client
 from scriptworker.artifacts import get_upstream_artifacts_full_paths_per_task_id
 from scriptworker.context import Context
@@ -128,7 +132,10 @@ password={pypitest_password}'''.format(
     subprocess.check_call(['npm-cli-login'])
 
     for package in allNpmPackages:
-        subprocess.check_call(['npm', 'publish', package])
+        version = json.loads(tarfile.open(sys.argv[1]).extractfile('package/package.json').read())['version']
+        parsed  = semver.parse_version_info(version)
+        tag     = 'latest' if parsed.prerelease is None else 'prerelease'
+        subprocess.check_call(['npm', 'publish', package, '--tag', tag])
 
 
 def get_default_config():
