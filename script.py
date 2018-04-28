@@ -62,13 +62,13 @@ async def async_main(context):
         artifacts = queue.listLatestArtifacts(taskId)
         if 'artifacts' in artifacts:
             artifacts = [a['name'] for a in artifacts['artifacts']]
-            # log.debug('all artifacts: {}'.format(artifacts))
+            log.debug('all artifacts: {}'.format(artifacts))
             artifacts = filter(lambda x: x.endswith('.whl'), artifacts)
-            # log.debug('filtered artifacts: {}'.format(artifacts))
+            log.debug('filtered artifacts: {}'.format(artifacts))
             urls = [get_artifact_url(taskId, a) for a in artifacts]
-            # log.debug('urls: {}'.format(urls))
+            log.debug('urls: {}'.format(urls))
             tasks, files = download_artifacts(context, urls)
-            # log.debug('files: {}'.format(files))
+            log.debug('files: {}'.format(files))
             downloadTasks.extend(tasks)
             allPackages.extend(files)
 
@@ -112,6 +112,9 @@ password={pypitest_password}'''.format(
 
     allWheels = list(filter(lambda x: '.whl' in x, allPackages))
     allNpmPackages = list(filter(lambda x: '.tgz' in x, allPackages))
+
+    log.debug('allWheels: {}'.format(allWheels))
+    log.debug('allNpmPackages: {}'.format(allNpmPackages))
 
     assert len(allNpmPackages) == 2, "should only have one CPU and one GPU package"
 
