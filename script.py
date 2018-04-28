@@ -132,7 +132,7 @@ password={pypitest_password}'''.format(
     subprocess.check_call(['npm-cli-login'])
 
     for package in allNpmPackages:
-        version = json.loads(tarfile.open(sys.argv[1]).extractfile('package/package.json').read())['version']
+        version = json.loads(tarfile.open(package).extractfile('package/package.json').read())['version']
         parsed  = semver.parse_version_info(version)
         tag     = 'latest' if parsed.prerelease is None else 'prerelease'
         subprocess.check_call(['npm', 'publish', package, '--tag', tag])
