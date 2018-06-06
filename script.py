@@ -135,7 +135,7 @@ password={pypitest_password}'''.format(
         version = json.loads(tarfile.open(package).extractfile('package/package.json').read())['version']
         parsed  = semver.parse_version_info(version)
         tag     = 'latest' if parsed.prerelease is None else 'prerelease'
-        subprocess.check_call(['npm', 'publish', package, '--tag', tag])
+        subprocess.check_call(['npm', 'publish', '--verbose', package, '--tag', tag])
 
 
 def get_default_config():
