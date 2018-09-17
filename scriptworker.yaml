@@ -28,7 +28,6 @@ worker_id: ds-scriptworker-1
 #-----------------------------------------------------------------------------------------------
 # Task configs
 #-----------------------------------------------------------------------------------------------
-artifact_expiration_hours: 24
 
 # The timeouts are in seconds.
 artifact_upload_timeout: 1200
