@@ -17,6 +17,7 @@ from scriptworker.artifacts import get_upstream_artifacts_full_paths_per_task_id
 from scriptworker.context import Context
 from scriptworker.exceptions import ScriptWorkerTaskException
 from scriptworker.utils import download_file, retry_async, raise_future_exceptions
+from scriptworker.client import sync_main
 
 from taskcluster.queue import Queue
 
@@ -150,34 +151,10 @@ def usage():
     sys.exit(1)
 
 
-def main(name=None, config_path=None, close_loop=True):
-    if name not in (None, '__main__'):
-        return
-    context = Context()
-    context.config = get_default_config()
-    if config_path is None:
-        if len(sys.argv) != 2:
-            usage()
-        config_path = sys.argv[1]
-    context.config.update(load_json(path=config_path))
-
-    logging.basicConfig(**craft_logging_config(context))
-    logging.getLogger('taskcluster').setLevel(logging.WARNING)
+def main():
+    # Ensure we won't leak credentials details
     logging.getLogger('oauth2client').setLevel(logging.WARNING)
-
-    loop = asyncio.get_event_loop()
-    async with aiohttp.ClientSession() as session:
-        context.session = session
-        try:
-            loop.run_until_complete(async_main(context))
-        except ScriptWorkerTaskException as exc:
-            traceback.print_exc()
-            sys.exit(exc.exit_code)
-
-    if close_loop:
-        # Loop cannot be reopen once closed. Not closing it allows to run several tests on main()
-        loop.close()
-
+    return scriptworker.client.sync_main(async_main, default_config=get_default_config(), should_validate_task=False)
 
 def craft_logging_config(context):
     return {
@@ -185,5 +162,4 @@ def craft_logging_config(context):
         'level': logging.DEBUG if context.config.get('verbose') else logging.INFO
     }
 
-
-main(name=__name__)
+main()
