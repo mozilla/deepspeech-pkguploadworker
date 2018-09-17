@@ -166,7 +166,7 @@ def main(name=None, config_path=None, close_loop=True):
     logging.getLogger('oauth2client').setLevel(logging.WARNING)
 
     loop = asyncio.get_event_loop()
-    with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession() as session:
         context.session = session
         try:
             loop.run_until_complete(async_main(context))
