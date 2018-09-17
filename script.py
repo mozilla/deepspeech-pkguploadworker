@@ -57,38 +57,30 @@ def get_artifact_url(task_id, artifact_name):
 async def async_main(context):
     context.task = scriptworker.client.get_task(context.config)
 
+    def download_pkgs(tasksId=None, pkg_ext=None):
+        for taskId in tasksId:
+            artifacts = queue.listLatestArtifacts(taskId)
+            if 'artifacts' in artifacts:
+                artifacts = [a['name'] for a in artifacts['artifacts']]
+                log.debug('all artifacts: {}'.format(artifacts))
+                artifacts = filter(lambda x: x.endswith(pkg_ext), artifacts)
+                log.debug('filtered artifacts: {}'.format(artifacts))
+                urls = [get_artifact_url(taskId, a) for a in artifacts]
+                log.debug('urls: {}'.format(urls))
+                tasks, files = download_artifacts(context, urls)
+                log.debug('files: {}'.format(files))
+                downloadTasks.extend(tasks)
+                allPackages.extend(files)
+
     pythonArtifactTaskIds = context.task['payload']['artifacts_deps']['python']
     jsArtifactTaskIds = context.task['payload']['artifacts_deps']['javascript']
+
     queue = Queue()
     downloadTasks = []
     allPackages = []
-    for taskId in pythonArtifactTaskIds:
-        artifacts = queue.listLatestArtifacts(taskId)
-        if 'artifacts' in artifacts:
-            artifacts = [a['name'] for a in artifacts['artifacts']]
-            log.debug('all artifacts: {}'.format(artifacts))
-            artifacts = filter(lambda x: x.endswith('.whl'), artifacts)
-            log.debug('filtered artifacts: {}'.format(artifacts))
-            urls = [get_artifact_url(taskId, a) for a in artifacts]
-            log.debug('urls: {}'.format(urls))
-            tasks, files = download_artifacts(context, urls)
-            log.debug('files: {}'.format(files))
-            downloadTasks.extend(tasks)
-            allPackages.extend(files)
 
-    for taskId in jsArtifactTaskIds:
-        artifacts = queue.listLatestArtifacts(taskId)
-        if 'artifacts' in artifacts:
-            artifacts = [a['name'] for a in artifacts['artifacts']]
-            log.debug('all artifacts: {}'.format(artifacts))
-            artifacts = filter(lambda x: x.endswith('.tgz'), artifacts)
-            log.debug('filtered artifacts: {}'.format(artifacts))
-            urls = [get_artifact_url(taskId, a) for a in artifacts]
-            log.debug('urls: {}'.format(urls))
-            tasks, files = download_artifacts(context, urls)
-            log.debug('files: {}'.format(files))
-            downloadTasks.extend(tasks)
-            allPackages.extend(files)
+    download_pkgs(tasksId=pythonArtifactTaskIds, pkg_ext='.whl')
+    download_pkgs(tasksId=jsArtifactTaskIds, pkg_ext='.tgz')
 
     # Wait on downloads
     await raise_future_exceptions(downloadTasks)
