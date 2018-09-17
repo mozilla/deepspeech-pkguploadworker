@@ -1,5 +1,5 @@
-async-timeout==1.4.0
-scriptworker==5.2.3
-semver==2.7.9
-taskcluster==2.0.0
+async-timeout==3.0.0
+scriptworker==16.0.1
+semver==2.8.1
+taskcluster==4.0.1
 twine==1.11.0
