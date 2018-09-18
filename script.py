@@ -11,6 +11,7 @@ import traceback
 import semver
 import tarfile
 import json
+import requests
 
 import scriptworker.client
 from scriptworker.artifacts import get_upstream_artifacts_full_paths_per_task_id
@@ -22,6 +23,8 @@ from scriptworker.client import sync_main
 from taskcluster.queue import Queue
 
 from twine.commands.upload import main as twine_upload
+
+from github import Github
 
 
 log = logging.getLogger(__name__)
@@ -54,12 +57,61 @@ def get_artifact_url(task_id, artifact_name):
     PATTERN = 'https://queue.taskcluster.net/v1/task/{task_id}/artifacts/{artifact_name}'
     return PATTERN.format(task_id=task_id, artifact_name=artifact_name)
 
+def get_native_client_final_name(task_id):
+    name_mapping = {
+        'DeepSpeech OSX AMD64 CPU': 'native_client.amd64.cpu.osx.tar.xz',
+        'DeepSpeech Linux AMD64 CPU': 'native_client.amd64.cpu.linux.tar.xz',
+        'DeepSpeech Linux AMD64 CUDA': 'native_client.amd64.cuda.linux.tar.xz',
+        'DeepSpeech Linux RPi3/ARMv7 CPU': 'native_client.rpi3.cpu.linux.tar.xz',
+        'DeepSpeech Linux ARM64 Cortex-A53 CPU': 'native_client.arm64.cpu.linux.tar.xz',
+    }
+
+    task_definition = 'https://queue.taskcluster.net/v1/task/{task_id}'.format(task_id=task_id)
+    task_json = json.loads(requests.get(task_definition).text)
+
+    return name_mapping[task_json['metadata']['name']]
+
+def get_github_release(repo=None, tag=None, token=None):
+    # Should make "https://github.com/mozilla/DeepSpeech.git" into mozilla/DeepSpeech
+    repo_name = '/'.join(repo.split('/')[3:5]).replace('.git', '')
+    gh = Github(token)
+    ds = gh.get_repo(repo_name)
+    matching_tag = list(filter(lambda x: x.tag_name == tag, ds.get_releases()))
+
+    r = None
+    if len(matching_tag) == 1:
+        # Existing (maybe draft?)
+        r = matching_tag[0]
+    elif len(matching_tag) == 0:
+        # Inexistent, assume non-draft prerelease
+        parsed = semver.parse_version_info(tag)
+        r = ds.create_git_release(tag=tag, name=tag, message='', draft=False, prerelease=parsed.prerelease)
+    else:
+        # should not happen
+        raise "Should not happen"
+
+    return r
 
 async def async_main(context):
     context.task = scriptworker.client.get_task(context.config)
 
+    decision_task_id = context.task['taskGroupId']
+    decision_task = 'https://queue.taskcluster.net/v1/task/{task_id}'.format(task_id=decision_task_id)
+    decision_json = json.loads(requests.get(decision_task).text)
+
+    github_repo  = os.environ.get('GITHUB_HEAD_REPO_URL', decision_json['payload']['env']['GITHUB_HEAD_REPO_URL'])
+    github_tag   = os.environ.get('GITHUB_HEAD_TAG', decision_json['payload']['env']['GITHUB_HEAD_TAG'])
+    github_token = os.environ.get('GITHUB_ACCESS_TOKEN', '')
+
+    assert len(github_repo) > 0
+    assert len(github_tag) > 0
+    assert len(github_token) > 0
+
+    log.debug('Will upload to Github; {} release {}'.format(github_repo, github_tag))
+
     def download_pkgs(tasksId=None, pkg_ext=None):
         for taskId in tasksId:
+            task_subdir = os.path.join(context.config['work_dir'], taskId)
             artifacts = queue.listLatestArtifacts(taskId)
             if 'artifacts' in artifacts:
                 artifacts = [a['name'] for a in artifacts['artifacts']]
@@ -68,20 +120,26 @@ async def async_main(context):
                 log.debug('filtered artifacts: {}'.format(artifacts))
                 urls = [get_artifact_url(taskId, a) for a in artifacts]
                 log.debug('urls: {}'.format(urls))
-                tasks, files = download_artifacts(context, urls)
+                tasks, files = download_artifacts(context, urls, parent_dir=task_subdir)
                 log.debug('files: {}'.format(files))
                 downloadTasks.extend(tasks)
                 allPackages.extend(files)
-
-    pythonArtifactTaskIds = context.task['payload']['artifacts_deps']['python']
-    jsArtifactTaskIds = context.task['payload']['artifacts_deps']['javascript']
 
     queue = Queue()
     downloadTasks = []
     allPackages = []
 
-    download_pkgs(tasksId=pythonArtifactTaskIds, pkg_ext='.whl')
-    download_pkgs(tasksId=jsArtifactTaskIds, pkg_ext='.tgz')
+    if 'python' in context.task['payload']['artifacts_deps']:
+        pythonArtifactTaskIds = context.task['payload']['artifacts_deps']['python']
+        download_pkgs(tasksId=pythonArtifactTaskIds, pkg_ext='.whl')
+
+    if 'javascript' in context.task['payload']['artifacts_deps']:
+        jsArtifactTaskIds     = context.task['payload']['artifacts_deps']['javascript']
+        download_pkgs(tasksId=jsArtifactTaskIds, pkg_ext='.tgz')
+
+    if 'cpp' in context.task['payload']['artifacts_deps']:
+        cppArtifactTaskIds    = context.task['payload']['artifacts_deps']['cpp']
+        download_pkgs(tasksId=cppArtifactTaskIds, pkg_ext='native_client.tar.xz')
 
     # Wait on downloads
     await raise_future_exceptions(downloadTasks)
@@ -101,10 +159,10 @@ password={pypi_password}
 repository=https://test.pypi.org/legacy/
 username={pypitest_username}
 password={pypitest_password}'''.format(
-            pypi_username=os.environ['PYPI_USERNAME'],
-            pypi_password=os.environ['PYPI_PASSWORD'],
-            pypitest_username=os.environ['PYPITEST_USERNAME'],
-            pypitest_password=os.environ['PYPITEST_PASSWORD'],
+            pypi_username=os.environ.get('PYPI_USERNAME'),
+            pypi_password=os.environ.get('PYPI_PASSWORD'),
+            pypitest_username=os.environ.get('PYPITEST_USERNAME'),
+            pypitest_password=os.environ.get('PYPITEST_PASSWORD'),
         ))
 
     allWheels = list(filter(lambda x: '.whl' in x, allPackages))
@@ -115,20 +173,46 @@ password={pypitest_password}'''.format(
     log.debug('allWheels: {}'.format(allWheels))
     log.debug('allNpmPackages: {}'.format(allNpmPackages))
 
+    allCppPackages = []
+    for cpp in filter(lambda x: 'native_client.tar.xz' in x, allPackages):
+        task_id = os.path.split(os.path.split(cpp)[0])[1]
+        new_nc = get_native_client_final_name(task_id)
+        new_cpp = os.path.join(os.path.split(cpp)[0], new_nc)
+        log.debug('Moving {} to {}...'.format(cpp, new_cpp))
+        assert len(new_cpp) > 0
+        os.rename(cpp, new_cpp)
+        allCppPackages.extend([ new_cpp ])
+
+    log.debug('allCppPackages: {}'.format(allCppPackages))
+
     assert len(allNpmPackages) == 2, "should only have one CPU and one GPU package"
 
     if 'USE_TEST_PYPI' in os.environ and os.environ['USE_TEST_PYPI'] == '1':
         allWheels.extend(['-r', 'pypitest'])
 
-    twine_upload(allWheels)
+    gh_release = get_github_release(repo=github_repo, tag=github_tag, token=github_token)
+    for pkg in allCppPackages + allWheels + allNpmPackages:
+        all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
+        # Ensure path exists, since we can have CLI flags for Twine
+        if os.path.basename(pkg) in all_assets_name:
+            log.debug('Skipping Github upload for existing asset {} on release {}.'.format(pkg, github_tag))
+        else:
+            if os.path.isfile(pkg):
+                gh_release.upload_asset(path=pkg)
+
+    try:
+        twine_upload(allWheels)
+    except Exception as e:
+        log.debug('Twine Upload Exception: {}'.format(e))
 
     subprocess.check_call(['npm-cli-login'])
-
     for package in allNpmPackages:
         version = json.loads(tarfile.open(package).extractfile('package/package.json').read())['version']
         parsed  = semver.parse_version_info(version)
         tag     = 'latest' if parsed.prerelease is None else 'prerelease'
-        subprocess.check_call(['npm', 'publish', '--verbose', package, '--tag', tag])
+        rc = subprocess.call(['npm', 'publish', '--verbose', package, '--tag', tag])
+        if rc > 0:
+            log.debug('NPM Upload Exception: {}'.format(rc))
 
 
 def get_default_config():
