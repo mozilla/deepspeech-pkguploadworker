@@ -191,13 +191,14 @@ password={pypitest_password}'''.format(
         allWheels.extend(['-r', 'pypitest'])
 
     gh_release = get_github_release(repo=github_repo, tag=github_tag, token=github_token)
+    all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
     for pkg in allCppPackages + allWheels + allNpmPackages:
-        all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
         # Ensure path exists, since we can have CLI flags for Twine
         if os.path.basename(pkg) in all_assets_name:
             log.debug('Skipping Github upload for existing asset {} on release {}.'.format(pkg, github_tag))
         else:
             if os.path.isfile(pkg):
+                log.debug('Performing Github upload for new asset {} on release {}.'.format(pkg, github_tag))
                 gh_release.upload_asset(path=pkg)
 
     try:
