@@ -214,7 +214,7 @@ password={pypitest_password}'''.format(
 
     subprocess.check_call(['npm-cli-login'])
     for package in allNpmPackages:
-        parsed  = parse_semver(tag)
+        parsed  = parse_semver(github_tag)
         tag     = 'latest' if parsed.prerelease is None else 'prerelease'
         rc = subprocess.call(['npm', 'publish', '--verbose', package, '--tag', tag])
         if rc > 0:
