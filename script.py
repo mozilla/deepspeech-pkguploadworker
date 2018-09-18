@@ -71,6 +71,12 @@ def get_native_client_final_name(task_id):
 
     return name_mapping[task_json['metadata']['name']]
 
+def parse_semver(tag=None):
+    if tag.startswith('v'):
+        tag = tag[1:]
+
+    return semver.parse_version_info(tag)
+
 def get_github_release(repo=None, tag=None, token=None):
     # Should make "https://github.com/mozilla/DeepSpeech.git" into mozilla/DeepSpeech
     repo_name = '/'.join(repo.split('/')[3:5]).replace('.git', '')
@@ -84,8 +90,8 @@ def get_github_release(repo=None, tag=None, token=None):
         r = matching_tag[0]
     elif len(matching_tag) == 0:
         # Inexistent, assume non-draft prerelease
-        parsed = semver.parse_version_info(tag)
-        r = ds.create_git_release(tag=tag, name=tag, message='', draft=False, prerelease=parsed.prerelease)
+        parsed = parse_semver(tag)
+        r = ds.create_git_release(tag=tag, name=tag, message='', draft=False, prerelease=(parsed.prerelease is not None))
     else:
         # should not happen
         raise "Should not happen"
@@ -208,7 +214,7 @@ password={pypitest_password}'''.format(
 
     subprocess.check_call(['npm-cli-login'])
     for package in allNpmPackages:
-        parsed  = semver.parse_version_info(github_tag)
+        parsed  = parse_semver(tag)
         tag     = 'latest' if parsed.prerelease is None else 'prerelease'
         rc = subprocess.call(['npm', 'publish', '--verbose', package, '--tag', tag])
         if rc > 0:
