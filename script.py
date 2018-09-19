@@ -63,6 +63,7 @@ def get_native_client_final_name(task_id):
         'DeepSpeech Linux AMD64 CPU': 'native_client.amd64.cpu.linux.tar.xz',
         'DeepSpeech Linux AMD64 CUDA': 'native_client.amd64.cuda.linux.tar.xz',
         'DeepSpeech Linux RPi3/ARMv7 CPU': 'native_client.rpi3.cpu.linux.tar.xz',
+        'DeepSpeech Linux RPi3/ARMv6 CPU': 'native_client.rpi3.cpu.linux.tar.xz'
         'DeepSpeech Linux ARM64 Cortex-A53 CPU': 'native_client.arm64.cpu.linux.tar.xz',
     }
 
