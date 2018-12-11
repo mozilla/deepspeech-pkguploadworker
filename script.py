@@ -92,15 +92,19 @@ def get_github_release(repo=None, tag=None, token=None):
     r = None
     if len(matching_tag) == 1:
         # Existing (maybe draft?)
+        log.debug('get_github_release(repo={}, tag={}) existing tag'.format(repo, tag))
         r = matching_tag[0]
     elif len(matching_tag) == 0:
         # Inexistent, assume non-draft prerelease
         parsed = parse_semver(tag)
+        log.debug('get_github_release(repo={}, tag={}) create tag'.format(repo, tag))
         r = ds.create_git_release(tag=tag, name=tag, message='', draft=False, prerelease=(parsed.prerelease is not None))
     else:
+        log.debug('get_github_release(repo={}, tag={}) unexpected state'.format(repo, tag))
         # should not happen
         raise "Should not happen"
 
+    log.debug('get_github_release(repo={}, tag={}) finish'.format(repo, tag))
     return r
 
 async def async_main(context):
