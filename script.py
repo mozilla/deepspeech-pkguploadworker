@@ -197,8 +197,6 @@ password={pypitest_password}'''.format(
 
     log.debug('allCppPackages: {}'.format(allCppPackages))
 
-    assert len(allNpmPackages) == 2, "should only have one CPU and one GPU package"
-
     if 'USE_TEST_PYPI' in os.environ and os.environ['USE_TEST_PYPI'] == '1':
         allWheels.extend(['-r', 'pypitest'])
 
@@ -221,6 +219,8 @@ password={pypitest_password}'''.format(
             log.debug('Twine Upload Exception: {}'.format(e))
 
     if 'npm' in upload_targets:
+        assert len(allNpmPackages) == 2, "should only have one CPU and one GPU package"
+
         subprocess.check_call(['npm-cli-login'])
         for package in allNpmPackages:
             parsed  = parse_semver(github_tag)
