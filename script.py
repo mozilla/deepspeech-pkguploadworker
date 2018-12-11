@@ -80,10 +80,14 @@ def parse_semver(tag=None):
 
 def get_github_release(repo=None, tag=None, token=None):
     # Should make "https://github.com/mozilla/DeepSpeech.git" into mozilla/DeepSpeech
+    log.debug('get_github_release(repo={}, tag={})'.format(repo, tag))
     repo_name = '/'.join(repo.split('/')[3:5]).replace('.git', '')
     gh = Github(token)
+    log.debug('get_github_release(repo={}, tag={}): has token'.format(repo, tag))
     ds = gh.get_repo(repo_name)
+    log.debug('get_github_release(repo={}, tag={}): has repo'.format(repo, tag))
     matching_tag = list(filter(lambda x: x.tag_name == tag, ds.get_releases()))
+    log.debug('get_github_release(repo={}, tag={}): matching_tag={}'.format(repo, tag, matching_tag))
 
     r = None
     if len(matching_tag) == 1:
