@@ -138,7 +138,7 @@ async def async_main(context):
 
     upload_targets = []
 
-    if 'upload_targets' in context.task['payload']
+    if 'upload_targets' in context.task['payload']:
         upload_targets = context.task['payload']['upload_targets']
 
     if 'python' in context.task['payload']['artifacts_deps']:
