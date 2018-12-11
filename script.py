@@ -136,6 +136,11 @@ async def async_main(context):
     downloadTasks = []
     allPackages = []
 
+    upload_targets = []
+
+    if 'upload_targets' in context.task['payload']
+        upload_targets = context.task['payload']['upload_targets']
+
     if 'python' in context.task['payload']['artifacts_deps']:
         pythonArtifactTaskIds = context.task['payload']['artifacts_deps']['python']
         download_pkgs(tasksId=pythonArtifactTaskIds, pkg_ext='.whl')
@@ -197,29 +202,32 @@ password={pypitest_password}'''.format(
     if 'USE_TEST_PYPI' in os.environ and os.environ['USE_TEST_PYPI'] == '1':
         allWheels.extend(['-r', 'pypitest'])
 
-    gh_release = get_github_release(repo=github_repo, tag=github_tag, token=github_token)
-    all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
-    for pkg in allCppPackages + allWheels + allNpmPackages:
-        # Ensure path exists, since we can have CLI flags for Twine
-        if os.path.basename(pkg) in all_assets_name:
-            log.debug('Skipping Github upload for existing asset {} on release {}.'.format(pkg, github_tag))
-        else:
-            if os.path.isfile(pkg):
-                log.debug('Performing Github upload for new asset {} on release {}.'.format(pkg, github_tag))
-                gh_release.upload_asset(path=pkg)
+    if 'github' in upload_targets:
+        gh_release = get_github_release(repo=github_repo, tag=github_tag, token=github_token)
+        all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
+        for pkg in allCppPackages + allWheels + allNpmPackages:
+            # Ensure path exists, since we can have CLI flags for Twine
+            if os.path.basename(pkg) in all_assets_name:
+                log.debug('Skipping Github upload for existing asset {} on release {}.'.format(pkg, github_tag))
+            else:
+                if os.path.isfile(pkg):
+                    log.debug('Performing Github upload for new asset {} on release {}.'.format(pkg, github_tag))
+                    gh_release.upload_asset(path=pkg)
 
-    try:
-        twine_upload(allWheels)
-    except Exception as e:
-        log.debug('Twine Upload Exception: {}'.format(e))
+    if 'pypi' in upload_targets:
+        try:
+            twine_upload(allWheels)
+        except Exception as e:
+            log.debug('Twine Upload Exception: {}'.format(e))
 
-    subprocess.check_call(['npm-cli-login'])
-    for package in allNpmPackages:
-        parsed  = parse_semver(github_tag)
-        tag     = 'latest' if parsed.prerelease is None else 'prerelease'
-        rc = subprocess.call(['npm', 'publish', '--verbose', package, '--tag', tag])
-        if rc > 0:
-            log.debug('NPM Upload Exception: {}'.format(rc))
+    if 'npm' in upload_targets:
+        subprocess.check_call(['npm-cli-login'])
+        for package in allNpmPackages:
+            parsed  = parse_semver(github_tag)
+            tag     = 'latest' if parsed.prerelease is None else 'prerelease'
+            rc = subprocess.call(['npm', 'publish', '--verbose', package, '--tag', tag])
+            if rc > 0:
+                log.debug('NPM Upload Exception: {}'.format(rc))
 
 
 def get_default_config():
