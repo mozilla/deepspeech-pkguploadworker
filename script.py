@@ -201,8 +201,11 @@ password={pypitest_password}'''.format(
         allWheels.extend(['-r', 'pypitest'])
 
     if 'github' in upload_targets:
+        log.debug('Starting GitHub upload ...')
         gh_release = get_github_release(repo=github_repo, tag=github_tag, token=github_token)
+        log.debug('GitHub release collected ...')
         all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
+        log.debug('All GitHub assets {} for {}.'.format(all_assets_name, github_tag))
         for pkg in allCppPackages + allWheels + allNpmPackages:
             log.debug('Maybe uploading to GitHub {}.'.format(pkg))
             # Ensure path exists, since we can have CLI flags for Twine
