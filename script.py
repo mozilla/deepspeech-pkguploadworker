@@ -24,7 +24,7 @@ from taskcluster.queue import Queue
 
 from twine.commands.upload import main as twine_upload
 
-from github import Github, GithubException
+from github import Github
 
 
 log = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ def get_github_release(repo=None, tag=None, token=None):
         r = ds.get_release(id=tag)
         # Existing (maybe draft?)
         log.debug('get_github_release(repo={}, tag={}) existing tag'.format(repo, tag))
-    except GithubException.UnknownObjectException:
+    except github.GithubException.UnknownObjectException:
         # Inexistent, assume non-draft prerelease
         parsed = parse_semver(tag)
         log.debug('get_github_release(repo={}, tag={}) create tag'.format(repo, tag))
