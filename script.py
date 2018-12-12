@@ -24,7 +24,7 @@ from taskcluster.queue import Queue
 
 from twine.commands.upload import main as twine_upload
 
-from github import Github
+from github import Github, GithubException
 
 
 log = logging.getLogger(__name__)
@@ -86,25 +86,16 @@ def get_github_release(repo=None, tag=None, token=None):
     log.debug('get_github_release(repo={}, tag={}): has token'.format(repo, tag))
     ds = gh.get_repo(repo_name)
     log.debug('get_github_release(repo={}, tag={}): has repo'.format(repo, tag))
-    ds_releases = list(ds.get_releases())
-    log.debug('get_github_release(repo={}, tag={}): has releases: {}'.format(repo, tag, ds_releases))
-    matching_tag = list(filter(lambda x: x.tag_name == tag, ds_releases))
-    log.debug('get_github_release(repo={}, tag={}): matching_tag={}'.format(repo, tag, matching_tag))
 
-    r = None
-    if len(matching_tag) == 1:
+    try:
+        r = ds.get_release(id=tag)
         # Existing (maybe draft?)
         log.debug('get_github_release(repo={}, tag={}) existing tag'.format(repo, tag))
-        r = matching_tag[0]
-    elif len(matching_tag) == 0:
+    except GithubException.UnknownObjectException:
         # Inexistent, assume non-draft prerelease
         parsed = parse_semver(tag)
         log.debug('get_github_release(repo={}, tag={}) create tag'.format(repo, tag))
         r = ds.create_git_release(tag=tag, name=tag, message='', draft=False, prerelease=(parsed.prerelease is not None))
-    else:
-        log.debug('get_github_release(repo={}, tag={}) unexpected state'.format(repo, tag))
-        # should not happen
-        raise "Should not happen"
 
     log.debug('get_github_release(repo={}, tag={}) finish'.format(repo, tag))
     return r
