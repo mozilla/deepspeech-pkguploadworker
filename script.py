@@ -70,7 +70,10 @@ def get_native_client_final_name(task_id):
     task_definition = 'https://queue.taskcluster.net/v1/task/{task_id}'.format(task_id=task_id)
     task_json = json.loads(requests.get(task_definition).text)
 
-    return name_mapping[task_json['metadata']['name']]
+    if 'nc_asset_name' in task_json['payload']:
+        task_json['payload']['nc_asset_name']
+    else:
+        return name_mapping[task_json['metadata']['name']]
 
 def parse_semver(tag=None):
     if tag.startswith('v'):
