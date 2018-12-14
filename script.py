@@ -70,8 +70,8 @@ def get_native_client_final_name(task_id):
     task_definition = 'https://queue.taskcluster.net/v1/task/{task_id}'.format(task_id=task_id)
     task_json = json.loads(requests.get(task_definition).text)
 
-    if 'nc_asset_name' in task_json['payload']:
-        task_json['extra']['nc_asset_name']
+    if 'nc_asset_name' in task_json['extra']:
+        return task_json['extra']['nc_asset_name']
     else:
         return name_mapping[task_json['metadata']['name']]
 
