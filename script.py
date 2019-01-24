@@ -264,10 +264,9 @@ password={pypitest_password}'''.format(
             zipFile = os.path.basename(mavenZip)
             log.debug('Pushing {} to Bintray/JCenter as {}'.format(mavenZip, bintray_username))
             #curl -T libdeepspeech/build/libdeepspeech-0.4.2-alpha.0.maven.zip -uX:Y 'https://api.bintray.com/content/alissy/org.mozilla.deepspeech/libdeepspeech/0.4.2-alpha.0/libdeepspeech-0.4.2-alpha.0.maven.zip;publish=1;override=1;explode=1
-            with open(mavenZip, 'rb') as put_data:
-                r = requests.put('https://api.bintray.com/content/{}/{}/{}/{}/{}'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version, zipFile), auth = (bintray_username, bintray_apikey), params = { 'publish': 1, 'override': 1, 'explode': 1 }, files = { 'file': put_data })
-                log.debug('Pushing {} resulted in {}: {}'.format(mavenZip, r.status_code, r.text))
-                assert r.status_code == 200
+            r = requests.put('https://api.bintray.com/content/{}/{}/{}/{}/{}'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version, zipFile), auth = (bintray_username, bintray_apikey), params = { 'publish': 1, 'override': 1, 'explode': 1 }, data = open(mavenZip, 'rb').read())
+            log.debug('Pushing {} resulted in {}: {}'.format(mavenZip, r.status_code, r.text))
+            assert (r.status_code == 200) or (r.status_code == 201)
 
         r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version), auth = (bintray_username, bintray_apikey), data = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
         assert r.status_code == 200
