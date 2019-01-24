@@ -103,6 +103,11 @@ def get_github_release(repo=None, tag=None, token=None):
     log.debug('get_github_release(repo={}, tag={}) finish'.format(repo, tag))
     return r
 
+def get_github_readme(repo=None, tag=None):
+    repo_url = os.path.splitext(repo)[0]
+    readme_url = '{}/raw/{}/README.md'.format(repo_url, tag)
+    return requests.get(readme_url).text
+
 async def async_main(context):
     context.task = scriptworker.client.get_task(context.config)
 
@@ -248,8 +253,24 @@ password={pypitest_password}'''.format(
     if 'jcenter' in upload_targets:
         bintray_username = os.environ.get('BINTRAY_USERNAME')
         bintray_apikey   = os.environ.get('BINTRAY_APIKEY')
+        bintray_repo     = os.environ.get('BINTRAY_REPO')
+        bintray_pkg      = os.environ.get('BINTRAY_PKG')
+
+        bintray_version  = github_tag.replace('v', '')
+
+        readme_tag       = get_github_readme(repo=github_repo, tag=github_tag)
+
         for mavenZip in allAarPackages:
+            zipFile = os.path.basename(mavenZip)
             log.debug('Pushing {} to Bintray/JCenter as {}'.format(mavenZip, bintray_username))
+            #curl -T libdeepspeech/build/libdeepspeech-0.4.2-alpha.0.maven.zip -uX:Y 'https://api.bintray.com/content/alissy/org.mozilla.deepspeech/libdeepspeech/0.4.2-alpha.0/libdeepspeech-0.4.2-alpha.0.maven.zip;publish=1;override=1;explode=1
+            with open(mavenZip) as put_data:
+                r = requests.put('https://api.bintray.com/content/{}/{}/{}/{}/{}'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version, zipFile), params = { 'publish': 1, 'override': 1, 'explode': 1 }, data = put_data, auth = (bintray_username, bintray_apikey))
+                log.debug('Pushing {} resulted in {}'.format(mavenZip, r.status_code))
+                assert r.status_code == 200
+
+        r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version), data = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }}, auth = (bintray_username, bintray_apikey))
+        assert r.status_code == 200
 
 
 def get_default_config():
