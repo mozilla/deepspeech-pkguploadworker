@@ -153,6 +153,10 @@ async def async_main(context):
         jsArtifactTaskIds     = context.task['payload']['artifacts_deps']['javascript']
         download_pkgs(tasksId=jsArtifactTaskIds, pkg_ext='.tgz')
 
+    if 'java_aar' in context.task['payload']['artifacts_deps']:
+        aarArtifactTaskIds     = context.task['payload']['artifacts_deps']['java_aar']
+        download_pkgs(tasksId=aarArtifactTaskIds, pkg_ext='.maven.zip')
+
     if 'cpp' in context.task['payload']['artifacts_deps']:
         cppArtifactTaskIds    = context.task['payload']['artifacts_deps']['cpp']
         download_pkgs(tasksId=cppArtifactTaskIds, pkg_ext='native_client.tar.xz')
@@ -186,8 +190,11 @@ password={pypitest_password}'''.format(
 
     allNpmPackages = list(filter(lambda x: '.tgz' in x, allPackages))
 
+    allAarPackages = list(filter(lambda x: '.maven.zip' in x, allPackages))
+
     log.debug('allWheels: {}'.format(allWheels))
     log.debug('allNpmPackages: {}'.format(allNpmPackages))
+    log.debug('allAarPackages: {}'.format(allAarPackages))
 
     allCppPackages = []
     for cpp in filter(lambda x: 'native_client.tar.xz' in x, allPackages):
@@ -210,7 +217,7 @@ password={pypitest_password}'''.format(
         log.debug('GitHub release collected ...')
         all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
         log.debug('All GitHub assets {} for {}.'.format(all_assets_name, github_tag))
-        for pkg in allCppPackages + allWheels + allNpmPackages:
+        for pkg in allCppPackages + allWheels + allNpmPackages + allAarPackages:
             log.debug('Maybe uploading to GitHub {}.'.format(pkg))
             # Ensure path exists, since we can have CLI flags for Twine
             if os.path.basename(pkg) in all_assets_name:
@@ -237,6 +244,12 @@ password={pypitest_password}'''.format(
             rc = subprocess.call(['npm', 'publish', '--verbose', package, '--tag', tag])
             if rc > 0:
                 log.debug('NPM Upload Exception: {}'.format(rc))
+
+    if 'jcenter' in upload_targets:
+        bintray_username = os.environ.get('BINTRAY_USERNAME')
+        bintray_apikey   = os.environ.get('BINTRAY_APIKEY')
+        for mavenZip in allAarPackages:
+            log.debug('Pushing {} to Bintray/JCenter as {}'.format(mavenZip, bintray_username))
 
 
 def get_default_config():
