@@ -299,7 +299,7 @@ password={pypitest_password}'''.format(
                 'X-NuGet-ApiKey': nuget_apikey,
                 'X-NuGet-Protocol-Version': '4.1.0',
             }
-            r = request.post('https://www.nuget.org/api/v2/package/create-verification-key/{}/{}'.format(pkg_name, pkg_version), headers = scope_key_headers)
+            r = requests.post('https://www.nuget.org/api/v2/package/create-verification-key/{}/{}'.format(pkg_name, pkg_version), headers = scope_key_headers)
             assert r.status_code == 200
 
             scope_verify_key = r.json()['Key']
