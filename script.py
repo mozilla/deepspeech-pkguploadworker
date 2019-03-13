@@ -162,6 +162,10 @@ async def async_main(context):
         aarArtifactTaskIds     = context.task['payload']['artifacts_deps']['java_aar']
         download_pkgs(tasksId=aarArtifactTaskIds, pkg_ext='.maven.zip')
 
+    if 'nuget' in context.task['payload']['artifacts_deps']:
+        aarArtifactTaskIds     = context.task['payload']['artifacts_deps']['nuget']
+        download_pkgs(tasksId=aarArtifactTaskIds, pkg_ext='.nupkg')
+
     if 'cpp' in context.task['payload']['artifacts_deps']:
         cppArtifactTaskIds    = context.task['payload']['artifacts_deps']['cpp']
         download_pkgs(tasksId=cppArtifactTaskIds, pkg_ext='native_client.tar.xz')
