@@ -287,6 +287,10 @@ password={pypitest_password}'''.format(
         for nugetPkg in allNugetPackages:
             nugetFile = os.path.basename(nugetPkg)
             log.debug('Pushing {} to NuGet Gallery'.format(nugetFile))
+            # send as multipart/form-data using files=
+            r = requests.put('https://www.nuget.org/api/v2/package', headers = { 'X-NuGet-ApiKey': nuget_apikey }, files = { 'file': (nugetFile, open(nugetPkg, 'rb') ) } )
+            log.debug('Pushing {} resulted in {}: {}'.format(nugetPkg, r.status_code, r.text))
+            assert (r.status_code == 200) or (r.status_code == 201) or (r.status_code == 202)
 
 
 def get_default_config():
