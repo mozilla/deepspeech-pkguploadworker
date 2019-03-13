@@ -284,11 +284,36 @@ password={pypitest_password}'''.format(
     if 'nuget' in upload_targets:
         nuget_apikey = os.environ.get('NUGET_APIKEY')
 
+        # https://docs.microsoft.com/en-us/nuget/api/package-publish-resource
+        # https://docs.microsoft.com/en-us/nuget/api/nuget-protocols
         for nugetPkg in allNugetPackages:
             nugetFile = os.path.basename(nugetPkg)
             log.debug('Pushing {} to NuGet Gallery'.format(nugetFile))
+
+            pkg_name    = os.path.splitext(nugetFile)[0].split('.')[0]
+            pkg_version = '.'.join(os.path.splitext(nugetFile)[0].split('.')[1:])
+
+            log.debug('Requesting verification key for {} v{}'.format(pkg_name, pkg_version))
+            # first we create a scope-verify key
+            scope_key_headers = {
+                'X-NuGet-ApiKey': nuget_apikey,
+                'X-NuGet-Protocol-Version: 4.1.0',
+            }
+            r = request.post('https://www.nuget.org/api/v2/package/create-verification-key/{}/{}'.format(pkg_name, pkg_version), headers = scope_key_headers)
+            assert r.status_code == 200
+
+            scope_verify_key = r.json()['Key']
+            assert len(scope_verify_key) > 0
+
+            log.debug('Received verification key for {} v{}'.format(pkg_name, pkg_version))
+
+            all_headders = {
+                'X-NuGet-ApiKey': scope_verify_key,
+                'X-NuGet-Protocol-Version': '4.1.0',
+            }
+
             # send as multipart/form-data using files=
-            r = requests.put('https://www.nuget.org/api/v2/package', headers = { 'X-NuGet-ApiKey': nuget_apikey }, files = { 'file': (nugetFile, open(nugetPkg, 'rb') ) } )
+            r = requests.put('https://www.nuget.org/api/v2/package', headers = all_headers, files = { 'file': (nugetFile, open(nugetPkg, 'rb') ) } )
             log.debug('Pushing {} resulted in {}: {}'.format(nugetPkg, r.status_code, r.text))
             assert (r.status_code == 200) or (r.status_code == 201) or (r.status_code == 202)
 
