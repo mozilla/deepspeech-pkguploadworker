@@ -307,7 +307,7 @@ password={pypitest_password}'''.format(
 
             log.debug('Received verification key for {} v{}'.format(pkg_name, pkg_version))
 
-            all_headders = {
+            all_headers = {
                 'X-NuGet-ApiKey': scope_verify_key,
                 'X-NuGet-Protocol-Version': '4.1.0',
             }
