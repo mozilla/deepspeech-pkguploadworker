@@ -307,8 +307,16 @@ password={pypitest_password}'''.format(
 
             log.debug('Received verification key for {} v{}'.format(pkg_name, pkg_version))
 
-            all_headers = {
+            log.debug('Run verification key for {} v{}'.format(pkg_name, pkg_version))
+            verify_key_headers = {
                 'X-NuGet-ApiKey': scope_verify_key,
+                'X-NuGet-Protocol-Version': '4.1.0',
+            }
+            r = requests.post('https://www.nuget.org/api/v2/verifykey/{}/{}'.format(pkg_name, pkg_version), headers = verify_key_headers)
+            assert r.status_code == 200
+
+            all_headers = {
+                'X-NuGet-ApiKey': nuget_apikey,
                 'X-NuGet-Protocol-Version': '4.1.0',
             }
 
