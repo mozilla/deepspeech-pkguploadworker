@@ -197,9 +197,12 @@ password={pypitest_password}'''.format(
 
     allAarPackages = list(filter(lambda x: '.maven.zip' in x, allPackages))
 
+    allNugetPackages = list(filter(lambda x: '.nupkg' in x, allPackages))
+
     log.debug('allWheels: {}'.format(allWheels))
     log.debug('allNpmPackages: {}'.format(allNpmPackages))
     log.debug('allAarPackages: {}'.format(allAarPackages))
+    log.debug('allNugetPackages: {}'.format(allNugetPackages))
 
     allCppPackages = []
     for cpp in filter(lambda x: 'native_client.tar.xz' in x, allPackages):
@@ -222,7 +225,7 @@ password={pypitest_password}'''.format(
         log.debug('GitHub release collected ...')
         all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
         log.debug('All GitHub assets {} for {}.'.format(all_assets_name, github_tag))
-        for pkg in allCppPackages + allWheels + allNpmPackages + allAarPackages:
+        for pkg in allCppPackages + allWheels + allNpmPackages + allAarPackages + allNugetPackages:
             log.debug('Maybe uploading to GitHub {}.'.format(pkg))
             # Ensure path exists, since we can have CLI flags for Twine
             if os.path.basename(pkg) in all_assets_name:
@@ -273,6 +276,13 @@ password={pypitest_password}'''.format(
 
         r = requests.post('https://api.bintray.com/packages/{}/{}/{}/readme'.format(bintray_username, bintray_repo, bintray_pkg), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
         assert r.status_code == 200
+
+    if 'nuget' in upload_targets:
+        nuget_apikey = os.environ.get('NUGET_APIKEY')
+
+        for nugetPkg in allNugetPackages:
+            nugetFile = os.path.basename(nugetPkg)
+            log.debug('Pushing {} to NuGet Gallery'.format(nugetFile))
 
 
 def get_default_config():
