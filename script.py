@@ -275,11 +275,11 @@ password={pypitest_password}'''.format(
             log.debug('Pushing {} resulted in {}: {}'.format(mavenZip, r.status_code, r.text))
             assert (r.status_code == 200) or (r.status_code == 201)
 
-        r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
-        assert r.status_code == 200
+        #r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
+        #assert r.status_code == 200
 
-        r = requests.post('https://api.bintray.com/packages/{}/{}/{}/readme'.format(bintray_username, bintray_repo, bintray_pkg), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
-        assert r.status_code == 200
+        #r = requests.post('https://api.bintray.com/packages/{}/{}/{}/readme'.format(bintray_username, bintray_repo, bintray_pkg), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
+        #assert r.status_code == 200
 
     if 'nuget' in upload_targets:
         nuget_apikey = os.environ.get('NUGET_APIKEY')
