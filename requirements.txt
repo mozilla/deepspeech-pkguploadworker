@@ -1,6 +1,6 @@
 async-timeout==3.0.0
 pygithub==1.43.2
-scriptworker==16.0.1
+scriptworker==27.2.0
 semver==2.8.1
-taskcluster==4.0.1
+taskcluster==21.3.0
 twine==1.11.0
