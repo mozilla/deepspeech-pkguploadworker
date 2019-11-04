@@ -3,7 +3,7 @@
 # For development, keep the test-dummy-* and dummy-worker-* convention.
 # In production, follow the production conventions.
 #-----------------------------------------------------------------------------------------------
-provisioner_id: deepspeech-provisioner
+provisioner_id: proj-deepspeech
 worker_group: deepspeech-workers
 worker_type: ds-scriptworker
 
