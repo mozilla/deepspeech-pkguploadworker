@@ -6,6 +6,7 @@
 provisioner_id: proj-deepspeech
 worker_group: proj-deepspeech
 worker_type: ds-scriptworker
+taskcluster_root_url: https://community-tc.services.mozilla.com/
 
 # worker_id will default to env['SCRIPTWORKER_WORKER_ID'] if not set, for CloudOps deployment.
 # We may be able to remove that default if we don't use CloudOps deployment for scriptworker
