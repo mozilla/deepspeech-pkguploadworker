@@ -63,35 +63,13 @@ artifact_dir: "/tmp/artifact"
 task_log_dir: "/tmp/artifact/public/logs"
 
 
+ed25519_private_key_path: "/tmp/my_privkey.asc"
+
 #-----------------------------------------------------------------------------------------------
 # GPG and git settings.
 # These must be set, but they're not used if sign_chain_of_trust, verify_chain_of_trust,
 # and verify_cot_signature are all false.
 #-----------------------------------------------------------------------------------------------
-# the gpg home directories are built as subdirectories of base_gpg_home_dir.
-base_gpg_home_dir: "/tmp/gpg"
-
-# this lockfile prevents multiple rebuild-gpg-homedir processes from clobbering each other
-gpg_lockfile: "/tmp/gpg_homedir.lock"
-
-# the git_key_repo_url is cloned into git_key_repo_dir.
-git_key_repo_dir: "/tmp/key_repo"
-
-# Uncomment and edit to override the default url.  This shouldn't be necessary unless you're
-# testing changes to the chain of trust.
-# git_key_repo_url: "https://github.com/mozilla-releng/cot-gpg-keys.git"
-
-# this directory holds pubkeys that are allowed to sign git commits in the git_key_repo_url
-git_commit_signing_pubkey_dir: "/tmp/valid_git_fingerprints/"
-last_good_git_revision_file: "/tmp/git_revision"
-# this scriptworker's public and private gpg keys
-pubkey_path: "/tmp/my_pubkey.asc"
-privkey_path: "/tmp/my_privkey.asc"
-# the path to the gpg executable
-gpg_path: gpg
-# the email of this scriptworker instance, used for gpg
-my_email: "scriptworker@example.com"
-
 
 #-----------------------------------------------------------------------------------------------
 # Valid artifact rules.
