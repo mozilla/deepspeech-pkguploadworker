@@ -4,7 +4,7 @@
 # In production, follow the production conventions.
 #-----------------------------------------------------------------------------------------------
 provisioner_id: proj-deepspeech
-worker_group: deepspeech-workers
+worker_group: proj-deepspeech
 worker_type: ds-scriptworker
 
 # worker_id will default to env['SCRIPTWORKER_WORKER_ID'] if not set, for CloudOps deployment.
