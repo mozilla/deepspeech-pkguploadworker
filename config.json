@@ -8,5 +8,6 @@
     "git_key_repo_dir": "/tmp/git_key_repo_dir",
     "pubkey_path": "/tmp/pubkey_path",
     "privkey_path": "/tmp/privkey_path",
-    "verbose": true
+    "verbose": true,
+    "taskcluster_root_url": "https://community-tc.services.mozilla.com/"
 }
