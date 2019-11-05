@@ -323,7 +323,10 @@ password={pypitest_password}'''.format(
             # send as multipart/form-data using files=
             r = requests.put('https://www.nuget.org/api/v2/package', headers = all_headers, files = { 'file': (nugetFile, open(nugetPkg, 'rb') ) } )
             log.debug('Pushing {} resulted in {}: {}'.format(nugetPkg, r.status_code, r.text))
-            assert (r.status_code == 200) or (r.status_code == 201) or (r.status_code == 202)
+            # Don't assert on those:
+            # 200/201 : successful upload
+            # 409: conflict (existing successfully uploaded package, in case of re-upload)
+            assert (r.status_code == 200) or (r.status_code == 201) or (r.status_code == 202) or (r.status_code == 409)
 
 
 def get_default_config():
