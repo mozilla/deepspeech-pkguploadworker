@@ -15,6 +15,7 @@ import requests
 
 import scriptworker.client
 from scriptworker.artifacts import get_upstream_artifacts_full_paths_per_task_id
+from scriptworker.constants import DEFAULT_CONFIG
 from scriptworker.context import Context
 from scriptworker.exceptions import ScriptWorkerTaskException
 from scriptworker.utils import download_file, retry_async, raise_future_exceptions
@@ -141,7 +142,7 @@ async def async_main(context):
                 downloadTasks.extend(tasks)
                 allPackages.extend(files)
 
-    queue = Queue()
+    queue = Queue(options={'rootUrl': DEFAULT_CONFIG['taskcluster_root_url']})
     downloadTasks = []
     allPackages = []
 
