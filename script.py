@@ -54,7 +54,7 @@ def download_artifacts(context, file_urls, parent_dir=None, session=None,
 
 
 def get_artifact_url(task_id, artifact_name):
-    PATTERN = 'https://community-tc.services.mozilla.com/api/index/v1/task/{task_id}/artifacts/{artifact_name}'
+    PATTERN = 'https://community-tc.services.mozilla.com/api/queue/v1/task/{task_id}/artifacts/{artifact_name}'
     return PATTERN.format(task_id=task_id, artifact_name=artifact_name)
 
 def get_native_client_final_name(task_id):
@@ -67,7 +67,7 @@ def get_native_client_final_name(task_id):
         'DeepSpeech Linux ARM64 Cortex-A53 CPU': 'native_client.arm64.cpu.linux.tar.xz',
     }
 
-    task_definition = 'https://community-tc.services.mozilla.com/api/index/v1/task/{task_id}'.format(task_id=task_id)
+    task_definition = 'https://community-tc.services.mozilla.com/api/queue/v1/task/{task_id}'.format(task_id=task_id)
     task_json = json.loads(requests.get(task_definition).text)
 
     if 'nc_asset_name' in task_json['extra']:
