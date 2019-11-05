@@ -112,7 +112,7 @@ async def async_main(context):
     context.task = scriptworker.client.get_task(context.config)
 
     decision_task_id = context.task['taskGroupId']
-    decision_task = 'https://community-tc.services.mozilla.com/api/index/v1/task/{task_id}'.format(task_id=decision_task_id)
+    decision_task = 'https://community-tc.services.mozilla.com/api/queue/v1/task/{task_id}'.format(task_id=decision_task_id)
     decision_json = json.loads(requests.get(decision_task).text)
 
     github_repo  = os.environ.get('GITHUB_HEAD_REPO_URL', decision_json['payload']['env']['GITHUB_HEAD_REPO_URL'])
