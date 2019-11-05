@@ -141,7 +141,6 @@ async def async_main(context):
                 downloadTasks.extend(tasks)
                 allPackages.extend(files)
 
-    print(context.config)
     queue = Queue(options={'rootUrl': context.config['taskcluster_root_url']})
     downloadTasks = []
     allPackages = []
