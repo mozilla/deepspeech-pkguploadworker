@@ -103,9 +103,9 @@ def get_github_release(repo=None, tag=None, token=None):
     log.debug('get_github_release(repo={}, tag={}) finish'.format(repo, tag))
     return r
 
-def get_github_readme(repo=None, tag=None):
+def get_github_readme(repo=None, tag=None, subdir=None):
     repo_url = os.path.splitext(repo)[0]
-    readme_url = '{}/raw/{}/README.md'.format(repo_url, tag)
+    readme_url = '{}/raw/{}/{}/README.md'.format(repo_url, tag, subdir)
     return requests.get(readme_url).text
 
 async def async_main(context):
@@ -265,7 +265,7 @@ password={pypitest_password}'''.format(
 
         bintray_version  = github_tag.replace('v', '')
 
-        readme_tag       = get_github_readme(repo=github_repo, tag=github_tag)
+        readme_tag       = get_github_readme(repo=github_repo, tag=github_tag, subdir='native_client/java')
 
         for mavenZip in allAarPackages:
             zipFile = os.path.basename(mavenZip)
