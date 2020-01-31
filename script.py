@@ -247,7 +247,7 @@ password={pypitest_password}'''.format(
             log.debug('Twine Upload Exception: {}'.format(e))
 
     if 'npm' in upload_targets:
-        assert len(allNpmPackages) == 2, "should only have one CPU and one GPU package"
+        assert len(allNpmPackages) == 3, "should only have one CPU, one GPU and one TFLite package"
 
         subprocess.check_call(['npm-cli-login'])
         for package in allNpmPackages:
