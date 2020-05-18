@@ -337,10 +337,11 @@ password={pypitest_password}'''.format(
         assert r['triggered']
         build_url = r['build']['_links']['_self']
 
-        rtd_latest_version = parse_semver(requests.get('https://readthedocs.org/api/v3/projects/deepspeech/versions/latest/', headers=auth_headers).json()['identifier'])
-        should_update_latest = parsed_version > rtd_latest_version
+        rtd_latest_version = requests.get('https://readthedocs.org/api/v3/projects/deepspeech/versions/latest/', headers=auth_headers).json()['identifier']
+        rtd_latest_version = parse_semver(rtd_latest_version)
+        should_update_default = parsed_version > rtd_latest_version
 
-        if should_update_latest:
+        if should_update_default:
             async def wait_for_build_and_update_version():
                 r = requests.get(build_url, headers=auth_headers).json()
 
@@ -349,7 +350,8 @@ password={pypitest_password}'''.format(
 
                 r = requests.patch('https://readthedocs.org/api/v3/projects/deepspeech/',
                                    headers=auth_headers,
-                                   json={'default_version', github_tag})
+                                   json={'default_version': github_tag,
+                                         'default_branch': github_tag})
                 r.raise_for_status()
 
             # Wait for build to finish and set default version.
