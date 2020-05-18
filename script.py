@@ -328,6 +328,37 @@ password={pypitest_password}'''.format(
             # 409: conflict (existing successfully uploaded package, in case of re-upload)
             assert (r.status_code == 200) or (r.status_code == 201) or (r.status_code == 202) or (r.status_code == 409)
 
+    if 'readthedocs' in upload_targets:
+        parsed_version = parse_semver(github_tag)
+        readthedocs_api_token = os.environ.get('READTHEDOCS_API_TOKEN')
+        auth_headers = {'Authorization': 'Token {}'.format(readthedocs_api_token)}
+        r = requests.post('https://readthedocs.org/api/v3/projects/deepspeech/versions/{}/builds/'.format(github_tag),
+                          headers=auth_headers).json()
+        assert r['triggered']
+        build_url = r['build']['_links']['_self']
+
+        rtd_latest_version = parse_semver(requests.get('https://readthedocs.org/api/v3/projects/deepspeech/versions/latest/', headers=auth_headers).json()['identifier'])
+        should_update_latest = parsed_version > rtd_latest_version
+
+        if should_update_latest:
+            async def wait_for_build_and_update_version():
+                r = requests.get(build_url, headers=auth_headers).json()
+
+                if r['state']['code'] != 'finished':
+                    raise Exception('not finished')
+
+                r = requests.patch('https://readthedocs.org/api/v3/projects/deepspeech/',
+                                   headers=auth_headers,
+                                   json={'default_version', github_tag})
+                r.raise_for_status()
+
+            # Wait for build to finish and set default version.
+            # Retry 20 times, waiting 30 seconds in between.
+            await retry_async(wait_for_build_and_update_version,
+                              attempts=20,
+                              sleeptime_callback=lambda *args, **kwargs: 30)
+
+
 
 def get_default_config():
     cwd = os.getcwd()
