@@ -332,33 +332,36 @@ password={pypitest_password}'''.format(
         parsed_version = parse_semver(github_tag)
         readthedocs_api_token = os.environ.get('READTHEDOCS_API_TOKEN')
         auth_headers = {'Authorization': 'Token {}'.format(readthedocs_api_token)}
-        r = requests.post('https://readthedocs.org/api/v3/projects/deepspeech/versions/{}/builds/'.format(github_tag),
-                          headers=auth_headers).json()
-        assert r['triggered']
-        build_url = r['build']['_links']['_self']
 
-        rtd_latest_version = requests.get('https://readthedocs.org/api/v3/projects/deepspeech/versions/latest/', headers=auth_headers).json()['identifier']
-        rtd_latest_version = parse_semver(rtd_latest_version)
-        should_update_default = parsed_version > rtd_latest_version
+        # We don't publish prerelease versions to ReadTheDocs
+        if not parsed_version.prerelease:
+            r = requests.post('https://readthedocs.org/api/v3/projects/deepspeech/versions/{}/builds/'.format(github_tag),
+                              headers=auth_headers).json()
+            assert r['triggered']
+            build_url = r['build']['_links']['_self']
 
-        if should_update_default:
-            async def wait_for_build_and_update_version():
-                r = requests.get(build_url, headers=auth_headers).json()
+            rtd_latest_version = requests.get('https://readthedocs.org/api/v3/projects/deepspeech/versions/latest/', headers=auth_headers).json()['identifier']
+            rtd_latest_version = parse_semver(rtd_latest_version)
+            should_update_default = parsed_version > rtd_latest_version
 
-                if r['state']['code'] != 'finished':
-                    raise Exception('not finished')
+            if should_update_default:
+                async def wait_for_build_and_update_version():
+                    r = requests.get(build_url, headers=auth_headers).json()
 
-                r = requests.patch('https://readthedocs.org/api/v3/projects/deepspeech/',
-                                   headers=auth_headers,
-                                   json={'default_version': github_tag,
-                                         'default_branch': github_tag})
-                r.raise_for_status()
+                    if r['state']['code'] != 'finished':
+                        raise Exception('not finished')
 
-            # Wait for build to finish and set default version.
-            # Retry 20 times, waiting 30 seconds in between.
-            await retry_async(wait_for_build_and_update_version,
-                              attempts=20,
-                              sleeptime_callback=lambda *args, **kwargs: 30)
+                    r = requests.patch('https://readthedocs.org/api/v3/projects/deepspeech/',
+                                       headers=auth_headers,
+                                       json={'default_version': github_tag,
+                                             'default_branch': github_tag})
+                    r.raise_for_status()
+
+                # Wait for build to finish and set default version.
+                # Retry 20 times, waiting 30 seconds in between.
+                await retry_async(wait_for_build_and_update_version,
+                                  attempts=20,
+                                  sleeptime_callback=lambda *args, **kwargs: 30)
 
 
 
