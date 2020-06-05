@@ -332,25 +332,31 @@ password={pypitest_password}'''.format(
         parsed_version = parse_semver(github_tag)
         readthedocs_api_token = os.environ.get('READTHEDOCS_API_TOKEN')
         auth_headers = {'Authorization': 'Token {}'.format(readthedocs_api_token)}
+        log.debug('Tag on GitHub: {}'.format(github_tag))
 
         # We don't publish prerelease versions to ReadTheDocs
         if not parsed_version.prerelease:
+            log.debug('Not a prerelease, triggering build')
             r = requests.post('https://readthedocs.org/api/v3/projects/deepspeech/versions/{}/builds/'.format(github_tag),
                               headers=auth_headers).json()
             assert r['triggered']
             build_url = r['build']['_links']['_self']
+            log.debug('Triggered build URL: {}'.format(build_url))
 
             rtd_latest_version = requests.get('https://readthedocs.org/api/v3/projects/deepspeech/versions/latest/', headers=auth_headers).json()['identifier']
             rtd_latest_version = parse_semver(rtd_latest_version)
             should_update_default = parsed_version > rtd_latest_version
+            log.debug('Latest version on RTD: {}, should update default: {}'.format(rtd_latest_version, should_update_default))
 
             if should_update_default:
                 async def wait_for_build_and_update_version():
                     r = requests.get(build_url, headers=auth_headers).json()
 
                     if r['state']['code'] != 'finished':
+                        log.debug('Build not finished')
                         raise Exception('not finished')
 
+                    log.debug('Build finished, updating default version and default branch')
                     r = requests.patch('https://readthedocs.org/api/v3/projects/deepspeech/',
                                        headers=auth_headers,
                                        json={'default_version': github_tag,
