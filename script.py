@@ -203,10 +203,13 @@ password={pypitest_password}'''.format(
 
     allNugetPackages = list(filter(lambda x: '.nupkg' in x, allPackages))
 
+    allFrameworkPackages = list(filter(lambda x: '.framework' in x, allPackages))
+
     log.debug('allWheels: {}'.format(allWheels))
     log.debug('allNpmPackages: {}'.format(allNpmPackages))
     log.debug('allAarPackages: {}'.format(allAarPackages))
     log.debug('allNugetPackages: {}'.format(allNugetPackages))
+    log.debug('allFrameworkPackages: {}'.format(allFrameworkPackages))
 
     allCppPackages = []
     for cpp in filter(lambda x: 'native_client.tar.xz' in x, allPackages):
@@ -229,7 +232,7 @@ password={pypitest_password}'''.format(
         log.debug('GitHub release collected ...')
         all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
         log.debug('All GitHub assets {} for {}.'.format(all_assets_name, github_tag))
-        for pkg in allCppPackages + allWheels + allNpmPackages + allAarPackages + allNugetPackages:
+        for pkg in allCppPackages + allWheels + allNpmPackages + allAarPackages + allNugetPackages + allFrameworkPackages:
             log.debug('Maybe uploading to GitHub {}.'.format(pkg))
             # Ensure path exists, since we can have CLI flags for Twine
             if os.path.basename(pkg) in all_assets_name:
