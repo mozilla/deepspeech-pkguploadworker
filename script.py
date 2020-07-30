@@ -170,6 +170,10 @@ async def async_main(context):
         cppArtifactTaskIds    = context.task['payload']['artifacts_deps']['cpp']
         download_pkgs(tasksId=cppArtifactTaskIds, pkg_ext='native_client.tar.xz')
 
+    if 'ios' in context.task['payload']['artifacts_deps']:
+        iosArtifactTaskIds    = context.task['payload']['artifacts_deps']['ios']
+        download_pkgs(tasksId=iosArtifactTaskIds, pkg_ext='.tar.xz')
+
     # Wait on downloads
     await raise_future_exceptions(downloadTasks)
 
