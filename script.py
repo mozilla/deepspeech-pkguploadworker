@@ -296,7 +296,8 @@ password={pypitest_password}'''.format(
         # https://docs.microsoft.com/en-us/nuget/api/nuget-protocols
         for nugetPkg in allNugetPackages:
             nugetFile = os.path.basename(nugetPkg)
-            log.debug('Pushing {} to NuGet Gallery'.format(nugetFile))
+            key, keymsg = (nuget_apikey, 'old key') if nugetFile.startswith('DeepSpeech') else (nuget_new_apikey, 'new key')
+            log.debug('Pushing {} to NuGet Gallery with {}'.format(nugetFile, keymsg))
 
             pkg_name    = os.path.splitext(nugetFile)[0].split('.')[0]
             pkg_version = '.'.join(os.path.splitext(nugetFile)[0].split('.')[1:])
@@ -304,7 +305,7 @@ password={pypitest_password}'''.format(
             log.debug('Requesting verification key for {} v{}'.format(pkg_name, pkg_version))
             # first we create a scope-verify key
             scope_key_headers = {
-                'X-NuGet-ApiKey': nuget_apikey if nugetFile.startswith('DeepSpeech') else nuget_new_apikey,
+                'X-NuGet-ApiKey': key,
                 'X-NuGet-Protocol-Version': '4.1.0',
             }
             r = requests.post('https://www.nuget.org/api/v2/package/create-verification-key/{}/{}'.format(pkg_name, pkg_version), headers = scope_key_headers)
