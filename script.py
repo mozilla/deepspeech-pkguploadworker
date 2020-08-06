@@ -265,10 +265,15 @@ password={pypitest_password}'''.format(
                 log.debug('NPM Upload Exception: {}'.format(rc))
 
     if 'jcenter' in upload_targets:
-        bintray_username = os.environ.get('BINTRAY_USERNAME')
-        bintray_apikey   = os.environ.get('BINTRAY_APIKEY')
-        bintray_repo     = os.environ.get('BINTRAY_REPO')
-        bintray_pkg      = os.environ.get('BINTRAY_PKG')
+        old_bintray_username = os.environ.get('BINTRAY_USERNAME')
+        old_bintray_apikey   = os.environ.get('BINTRAY_APIKEY')
+        old_bintray_repo     = os.environ.get('BINTRAY_REPO')
+        old_bintray_pkg      = os.environ.get('BINTRAY_PKG')
+
+        new_bintray_username = os.environ.get('BINTRAY_MOZILLA_VOICE_USERNAME')
+        new_bintray_apikey   = os.environ.get('BINTRAY_MOZILLA_VOICE_APIKEY')
+        new_bintray_repo     = os.environ.get('BINTRAY_MOZILLA_VOICE_REPO')
+        new_bintray_pkg      = os.environ.get('BINTRAY_MOZILLA_VOICE_PKG')
 
         bintray_version  = github_tag.replace('v', '')
 
@@ -276,17 +281,24 @@ password={pypitest_password}'''.format(
 
         for mavenZip in allAarPackages:
             zipFile = os.path.basename(mavenZip)
+            is_new_package = zipFile.startswith('libmozillavoicestt')
+
+            bintray_username = new_bintray_username if is_new_package else old_bintray_username
+            bintray_repo = new_bintray_repo if is_new_package else old_bintray_repo
+            bintray_pkg = new_bintray_pkg if is_new_package else old_bintray_pkg
+            bintray_apikey = new_bintray_apikey if is_new_package else old_bintray_apikey
+
             log.debug('Pushing {} to Bintray/JCenter as {}'.format(mavenZip, bintray_username))
             #curl -T libdeepspeech/build/libdeepspeech-0.4.2-alpha.0.maven.zip -uX:Y 'https://api.bintray.com/content/alissy/org.mozilla.deepspeech/libdeepspeech/0.4.2-alpha.0/libdeepspeech-0.4.2-alpha.0.maven.zip;publish=1;override=1;explode=1
             r = requests.put('https://api.bintray.com/content/{}/{}/{}/{}/{}'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version, zipFile), auth = (bintray_username, bintray_apikey), params = { 'publish': 1, 'override': 1, 'explode': 1 }, data = open(mavenZip, 'rb').read())
             log.debug('Pushing {} resulted in {}: {}'.format(mavenZip, r.status_code, r.text))
             assert (r.status_code == 200) or (r.status_code == 201)
 
-        r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
-        assert r.status_code == 200
+            r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray_username, bintray_repo, bintray_pkg, bintray_version), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
+            assert r.status_code == 200
 
-        r = requests.post('https://api.bintray.com/packages/{}/{}/{}/readme'.format(bintray_username, bintray_repo, bintray_pkg), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
-        assert r.status_code == 200
+            r = requests.post('https://api.bintray.com/packages/{}/{}/{}/readme'.format(bintray_username, bintray_repo, bintray_pkg), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
+            assert r.status_code == 200
 
     if 'nuget' in upload_targets:
         nuget_old_apikey = os.environ.get('NUGET_APIKEY')
