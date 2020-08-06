@@ -289,14 +289,14 @@ password={pypitest_password}'''.format(
         assert r.status_code == 200
 
     if 'nuget' in upload_targets:
-        nuget_apikey = os.environ.get('NUGET_APIKEY')
+        nuget_old_apikey = os.environ.get('NUGET_APIKEY')
         nuget_new_apikey = os.environ.get('NUGET_MOZILLA_VOICE_APIKEY')
 
         # https://docs.microsoft.com/en-us/nuget/api/package-publish-resource
         # https://docs.microsoft.com/en-us/nuget/api/nuget-protocols
         for nugetPkg in allNugetPackages:
             nugetFile = os.path.basename(nugetPkg)
-            key, keymsg = (nuget_apikey, 'old key') if nugetFile.startswith('DeepSpeech') else (nuget_new_apikey, 'new key')
+            key, keymsg = (nuget_old_apikey, 'old key') if nugetFile.startswith('DeepSpeech') else (nuget_new_apikey, 'new key')
             log.debug('Pushing {} to NuGet Gallery with {}'.format(nugetFile, keymsg))
 
             pkg_name    = os.path.splitext(nugetFile)[0].split('.')[0]
@@ -325,7 +325,7 @@ password={pypitest_password}'''.format(
             assert r.status_code == 200
 
             all_headers = {
-                'X-NuGet-ApiKey': nuget_apikey,
+                'X-NuGet-ApiKey': key,
                 'X-NuGet-Protocol-Version': '4.1.0',
             }
 
