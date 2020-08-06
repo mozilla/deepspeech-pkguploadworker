@@ -290,6 +290,7 @@ password={pypitest_password}'''.format(
 
     if 'nuget' in upload_targets:
         nuget_apikey = os.environ.get('NUGET_APIKEY')
+        nuget_new_apikey = os.environ.get('NUGET_MOZILLA_VOICE_APIKEY')
 
         # https://docs.microsoft.com/en-us/nuget/api/package-publish-resource
         # https://docs.microsoft.com/en-us/nuget/api/nuget-protocols
@@ -303,7 +304,7 @@ password={pypitest_password}'''.format(
             log.debug('Requesting verification key for {} v{}'.format(pkg_name, pkg_version))
             # first we create a scope-verify key
             scope_key_headers = {
-                'X-NuGet-ApiKey': nuget_apikey,
+                'X-NuGet-ApiKey': nuget_apikey if nugetFile.startswith('DeepSpeech') else nuget_new_apikey,
                 'X-NuGet-Protocol-Version': '4.1.0',
             }
             r = requests.post('https://www.nuget.org/api/v2/package/create-verification-key/{}/{}'.format(pkg_name, pkg_version), headers = scope_key_headers)
