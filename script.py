@@ -260,7 +260,8 @@ password={pypitest_password}'''.format(
         for package in allNpmPackages:
             parsed  = parse_semver(github_tag)
             tag     = 'latest' if parsed.prerelease is None else 'prerelease'
-            rc = subprocess.call(['npm', 'publish', '--verbose', package, '--tag', tag])
+            # --access=public is required because by default org packages are private
+            rc = subprocess.call(['npm', 'publish', '--access=public', '--verbose', package, '--tag', tag])
             if rc > 0:
                 log.debug('NPM Upload Exception: {}'.format(rc))
 
