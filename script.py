@@ -305,7 +305,7 @@ password={pypitest_password}'''.format(
             assert r.status_code == 200
 
     if 'nuget' in upload_targets:
-        nuget_old_apikey = os.environ.get('NUGET_APIKEY')
+        nuget_old_apikey = os.environ.get('NUGET_DEEPSPEECH_APIKEY')
         nuget_new_apikey = os.environ.get('NUGET_MOZILLA_VOICE_APIKEY')
 
         # https://docs.microsoft.com/en-us/nuget/api/package-publish-resource
