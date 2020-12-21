@@ -234,15 +234,21 @@ password={pypitest_password}'''.format(
         log.debug('Starting GitHub upload ...')
         gh_release = get_github_release(repo=github_repo, tag=github_tag, token=github_token)
         log.debug('GitHub release collected ...')
-        all_assets_name = list(map(lambda x: x.name, gh_release.get_assets()))
-        log.debug('All GitHub assets {} for {}.'.format(all_assets_name, github_tag))
+        all_assets = {a.name: a for a in gh_release.get_assets()}
+        log.debug('All GitHub assets {} for {}.'.format([a.name for a in all_assets], github_tag))
         for pkg in allCppPackages + allWheels + allNpmPackages + allAarPackages + allNugetPackages + allFrameworkPackages:
             log.debug('Maybe uploading to GitHub {}.'.format(pkg))
-            # Ensure path exists, since we can have CLI flags for Twine
-            if os.path.basename(pkg) in all_assets_name:
+            asset = all_assets.get(os.path.basename(pkg), None)
+
+            if asset and asset.state == 'starter' and os.path.isfile(pkg):
+                log.debug('Removing partially uploaded asset {} on release {} and uploading again.'.format(pkg, github_tag))
+                asset.delete_asset()
+
+            if asset and asset.state == 'uploaded':
                 log.debug('Skipping Github upload for existing asset {} on release {}.'.format(pkg, github_tag))
             else:
                 log.debug('Should be uploading to GitHub {}.'.format(pkg))
+                # Ensure path exists, since we can have CLI flags for Twine
                 if os.path.isfile(pkg):
                     log.debug('Performing Github upload for new asset {} on release {}.'.format(pkg, github_tag))
                     gh_release.upload_asset(path=pkg)
