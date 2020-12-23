@@ -30,6 +30,11 @@ from github import Github, GithubException
 log = logging.getLogger(__name__)
 
 
+class AttrDict(object):
+  def __init__(self, dict_):
+    self.__dict__.update(dict_)
+
+
 def download_artifacts(context, file_urls, parent_dir=None, session=None,
                              download_func=download_file):
     parent_dir = parent_dir or context.config['work_dir']
@@ -272,42 +277,46 @@ password={pypitest_password}'''.format(
                 log.debug('NPM Upload Exception: {}'.format(rc))
 
     if 'jcenter' in upload_targets:
-        old_bintray_org = os.environ.get('BINTRAY_USERNAME')
-        old_bintray_username = os.environ.get('BINTRAY_USERNAME')
-        old_bintray_apikey   = os.environ.get('BINTRAY_APIKEY')
-        old_bintray_repo     = os.environ.get('BINTRAY_REPO')
-        old_bintray_pkg      = os.environ.get('BINTRAY_PKG')
+        old_bintray = AttrDict(dict(
+            org      = os.environ.get('BINTRAY.USERNAME'),
+            username = os.environ.get('BINTRAY_USERNAME'),
+            apikey   = os.environ.get('BINTRAY_APIKEY'),
+            repo     = os.environ.get('BINTRAY_REPO'),
+            pkg      = os.environ.get('BINTRAY_PKG'),
+        ))
 
-        new_bintray_org = os.environ.get('BINTRAY_MOZILLA_VOICE_ORG')
-        new_bintray_username = os.environ.get('BINTRAY_MOZILLA_VOICE_USERNAME')
-        new_bintray_apikey   = os.environ.get('BINTRAY_MOZILLA_VOICE_APIKEY')
-        new_bintray_repo     = os.environ.get('BINTRAY_MOZILLA_VOICE_REPO')
-        new_bintray_pkg      = os.environ.get('BINTRAY_MOZILLA_VOICE_PKG')
+        new_bintray = AttrDict(dict(
+            org      = os.environ.get('BINTRAY_NEW_ORG'),
+            username = os.environ.get('BINTRAY_NEW_USERNAME'),
+            apikey   = os.environ.get('BINTRAY_NEW_APIKEY'),
+            repo     = os.environ.get('BINTRAY_NEW_REPO'),
+            pkg      = os.environ.get('BINTRAY_NEW_PKG'),
+        ))
 
         bintray_version  = github_tag.replace('v', '')
 
         readme_tag       = get_github_readme(repo=github_repo, tag=github_tag, subdir='native_client/java')
 
+        # on 0.9.3 the repo name was changed from org.mozilla.deepspeech to org.deepspeech
+        parsed = parse_semver(github_tag)
+        name_switchpoint = parse_semver('0.9.3')
+        is_new_name = parsed >= name_switchpoint
+
+        bintray = new_bintray if is_new_name else old_bintray
+
         for mavenZip in allAarPackages:
             zipFile = os.path.basename(mavenZip)
-            is_new_package = zipFile.startswith('libmozillavoicestt')
-
-            bintray_org = new_bintray_org if is_new_package else old_bintray_org
-            bintray_username = new_bintray_username if is_new_package else old_bintray_username
-            bintray_repo = new_bintray_repo if is_new_package else old_bintray_repo
-            bintray_pkg = new_bintray_pkg if is_new_package else old_bintray_pkg
-            bintray_apikey = new_bintray_apikey if is_new_package else old_bintray_apikey
 
             log.debug('Pushing {} to Bintray/JCenter as {}'.format(mavenZip, bintray_username))
-            #curl -T libdeepspeech/build/libdeepspeech-0.4.2-alpha.0.maven.zip -uX:Y 'https://api.bintray.com/content/alissy/org.mozilla.deepspeech/libdeepspeech/0.4.2-alpha.0/libdeepspeech-0.4.2-alpha.0.maven.zip;publish=1;override=1;explode=1
-            r = requests.put('https://api.bintray.com/content/{}/{}/{}/{}/{}'.format(bintray_org, bintray_repo, bintray_pkg, bintray_version, zipFile), auth = (bintray_username, bintray_apikey), params = { 'publish': 1, 'override': 1, 'explode': 1 }, data = open(mavenZip, 'rb').read())
+            #curl -T libdeepspeech/build/libdeepspeech-0.4.2-alpha.0.maven.zip -uX:Y 'https://api.bintray.com/content/deepspeech-ci/org.deepspeech/libdeepspeech/0.4.2-alpha.0/libdeepspeech-0.4.2-alpha.0.maven.zip;publish=1;override=1;explode=1
+            r = requests.put('https://api.bintray.com/content/{}/{}/{}/{}/{}'.format(bintray.org, bintray.repo, bintray.pkg, bintray_version, zipFile), auth = (bintray.username, bintray.apikey), params = { 'publish': 1, 'override': 1, 'explode': 1 }, data = open(mavenZip, 'rb').read())
             log.debug('Pushing {} resulted in {}: {}'.format(mavenZip, r.status_code, r.text))
             assert (r.status_code == 200) or (r.status_code == 201)
 
-            r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray_org, bintray_repo, bintray_pkg, bintray_version), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
+            r = requests.post('https://api.bintray.com/packages/{}/{}/{}/versions/{}/release_notes'.format(bintray.org, bintray.repo, bintray.pkg, bintray_version), auth = (bintray.username, bintray.apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
             assert r.status_code == 200
 
-            r = requests.post('https://api.bintray.com/packages/{}/{}/{}/readme'.format(bintray_org, bintray_repo, bintray_pkg), auth = (bintray_username, bintray_apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
+            r = requests.post('https://api.bintray.com/packages/{}/{}/{}/readme'.format(bintray.org, bintray.repo, bintray.pkg), auth = (bintray.username, bintray.apikey), json = {'bintray': { 'syntax': 'markdown', 'content': readme_tag }})
             assert r.status_code == 200
 
     if 'nuget' in upload_targets:
